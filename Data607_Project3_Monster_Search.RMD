@@ -1,0 +1,104 @@
+---
+title: "Data607 Project3 Monster Search"
+author: "Ritesh Lohiya"
+date: "March 20, 2018"
+output: html_document
+---
+
+Load your libraries:
+
+#install.packages("tokenizers")
+#install.packages("DT")
+```{r}
+# Load the libraries
+library(stringr)    #For string operations
+library(rvest)      #For screen scrapper
+library(tokenizers) #
+library(tidyverse)  #For Tidyverse
+library(RCurl)      #For File Operations
+library(dplyr)      #For Manipulating the data frames
+library(DT)         #For Data table package
+library(curl)
+```
+
+Variables to drive the program search:
+
+```{r}
+skill2search <- "Data Science"
+city2search <- "Columbus"
+state2search <- "OH"
+```
+
+BUild Search Initial :
+
+```{r}
+monsterUrlBuilder <- function(skillname, cityname, statecode){
+    startUrl <- "https://www.monster.com/jobs/search/?q="
+    skillname <- gsub(" ","-",skillname)
+    middle0Url <- "&where="
+    cityname <- gsub(" ","-",cityname)
+    middle1Url <- "__2C-"
+    middle2Url <- "&intcid=skr_navigation_nhpso_searchHeader"
+
+    searchUrl <- paste(startUrl,skillname,middle0Url,cityname,middle1Url,statecode,middle2Url, sep="")
+    searchUrl
+}
+
+searchPage <- monsterUrlBuilder(skill2search, city2search, state2search)
+
+searchPage <- read_html(searchPage)
+
+#Get list of URLs from the Result HTML
+searchAllJobUrls <- unlist(str_extract_all(searchPage,'(job-openings\\.monster\\.com\\/)\\w.[^\\"]+'))
+searchAllJobUrls <- paste("https://",searchAllJobUrls,sep = "")
+searchAllJobUrls    
+
+##
+# Fetch the list of all jobs with their links  
+##
+
+    monsterJobUrlBuilder <- function(jobUrl){
+        htmlJobPage <- read_html(curl(jobUrl, handle = curl::new_handle("useragent" = "Mozilla/5.0")))
+        forecasthtml <- html_nodes(htmlJobPage, "#JobDescription")
+        forecast <- html_text(forecasthtml)
+        searchresult <- paste(forecast, collapse =" ")
+        return(searchresult)
+    }
+    searchAllJobUrls[1]
+```   
+
+```{r}
+##
+# Data Dictionary
+## 
+
+skills <- c("data engineering", "hadoop", "python", "sql", "hive", "spark", "kafka", "database", "big data", "statistic", "model", "math", "physics", "engineering", "finance", "quantitative", "matlab", " r ", "probability", "stochastic", "calculus", "design", "phd", "masters", "bachelors", "development", "scala", "oracle", "aws", "amazon", "google", "engine", "predict", "linear", "regression", "logistic", "seaborn", "ggplot", "shiny", "tensorflow", "nlp", "neuro", "language", "sas", "spss", "scipy", "numpy", "scikit", "dataset", "machine learning", "deep learning", "svm", "analytics", "clustering", "decision tree", "visualization", "math", "algorithms", "bayesian")
+```
+
+
+```{r}
+##
+# For loop to view jobs descriptions of each job and then compare against skills
+## 
+
+allValues <- c()
+
+for(i in searchAllJobUrls){
+    searchJobPage <- monsterJobUrlBuilder(i)
+    values <- unlist(str_extract_all(tolower(searchJobPage), skills))
+    allValues <- c(allValues, values) 
+}
+
+
+allValues
+skillcount <- table(allValues)
+skillcount <- data_frame(word = names(skillcount), count = as.numeric(skillcount))
+skillcount %>% arrange(desc(count))
+```
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
