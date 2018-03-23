@@ -1,0 +1,99 @@
+---
+title: "Data607 Project3 Monster Search"
+author: "Ritesh Lohiya"
+date: "March 20, 2018"
+output: html_document
+---
+
+#install.packages("tokenizers")
+#install.packages("DT")
+```{r}
+# Load the libraries
+library(stringr)    #For string operations
+library(rvest)      #For screen scrapper
+library(tokenizers) #
+library(tidyverse)  #For Tidyverse
+library(RCurl)      #For File Operations
+library(dplyr)      #For Manipulating the data frames
+library(DT)         #For Data table package
+library(curl)
+```
+
+Variables to drive the program search:
+
+```{r}
+skill2search <- "Data Science"
+city2search <- "Columbus"
+state2search <- "OH"
+data_store_path <- "~/Project3"
+```
+
+BUild Search Initial :
+
+```{r}
+monsterUrlBuilder <- function(skillname, cityname, statecode){
+    startUrl <- "https://www.monster.com/jobs/search/?q="
+    skillname <- gsub(" ","-",skillname)
+    middle0Url <- "&where="
+    cityname <- gsub(" ","-",cityname)
+    middle1Url <- "__2C-"
+    middle2Url <- "&intcid=skr_navigation_nhpso_searchHeader"
+
+    searchUrl <- paste(startUrl,skillname,middle0Url,cityname,middle1Url,statecode,middle2Url, sep="")
+    searchUrl
+}
+
+searchPage <- monsterUrlBuilder(skill2search, city2search, state2search)
+
+searchPage <- read_html(searchPage)
+
+#Get list of URLs from the Result HTML
+searchAllJobUrls <- unlist(str_extract_all(searchPage,'(job-openings\\.monster\\.com\\/)\\w.[^\\"]+'))
+searchAllJobUrls <- paste("https://",searchAllJobUrls,sep = "")
+searchAllJobUrls    
+
+##
+# Fetch the list of all jobs with their links  
+##
+
+    monsterJobUrlBuilder <- function(jobUrl){
+        htmlJobPage <- read_html(curl(jobUrl, handle = curl::new_handle("useragent" = "Mozilla/5.0")))
+        forecasthtml <- html_nodes(htmlJobPage, "#JobDescription")
+        forecast <- html_text(forecasthtml)
+        searchresult <- paste(forecast, collapse =" ")
+        return(searchresult)
+    }
+    searchAllJobUrls
+    
+```   
+
+
+```{r}
+#scrape job description for analysis
+
+job_sum_text <- vector(mode = "character", length = length(searchAllJobUrls))
+for (i in 1:length(searchAllJobUrls)) {
+  #Visit each HTML page
+  htmFile <- file.path(data_store_path, paste0("monster_job_post_", str_pad(i, 3, pad = "0"), ".html"))
+  h <- read_html(searchAllJobUrls[i])
+  write_html(h, htmFile)
+  
+  htmlJobPage <- read_html(curl(searchAllJobUrls, handle = curl::new_handle("useragent" = "Mozilla/5.0")))
+        forecasthtml <- html_nodes(htmlJobPage, "#JobDescription")
+job_sum_text[i] = html_text(forecasthtml)
+  txtFile <- file.path(data_store_path, paste0("monster_job_summary_", str_pad(i, 3, pad = "0"), ".txt"))
+  write_lines(job_sum_text[i], txtFile)
+}
+```
+
+```{r}
+job_df <- data.frame(job_post_source = "MONSTER", job_post_title = "Data Scientist", job_post_summary = job_sum_text)
+job_df
+``` 
+
+
+  
+
+
+
+
