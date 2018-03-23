@@ -72,7 +72,7 @@ searchAllJobUrls
 #scrape job description for analysis
 
 job_sum_text <- vector(mode = "character", length = length(searchAllJobUrls))
-for (i in 1:length(searchAllJobUrls)) {
+for (i in 1:length( searchAllJobUrls[i])) {
   #Visit each HTML page
   htmFile <- file.path(data_store_path, paste0("monster_job_post_", str_pad(i, 3, pad = "0"), ".html"))
   h <- read_html(searchAllJobUrls[i])
